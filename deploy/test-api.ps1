@@ -65,8 +65,20 @@ $body = @{
 try {
     $resp = Invoke-RestMethod -Uri "$BaseUrl/v1/chat/completions" -Headers $headers `
             -Method Post -Body ([System.Text.Encoding]::UTF8.GetBytes($body)) -TimeoutSec 180
+    $content = $null
+    if ($resp -and $resp.choices -and $resp.choices.Count -gt 0) {
+        $content = $resp.choices[0].message.content
+    }
+    if (-not $content) {
+        Write-Host "  [x] 服务返回了空回复（choices 为空）。" -ForegroundColor Red
+        Write-Host "      这几乎总是上游连接失败，请看服务端窗口的日志：" -ForegroundColor Yellow
+        Write-Host "        curl (28) / Could not connect -> 需要配代理 PROXY_URL" -ForegroundColor DarkGray
+        Write-Host "        403 / Just a moment           -> Cloudflare 拦截，需补 cf_clearance" -ForegroundColor DarkGray
+        Write-Host "        401 / Unauthorized            -> LA_COOKIE 失效，需重新抓取" -ForegroundColor DarkGray
+        exit 1
+    }
     Write-Host "  [OK] 回复：" -ForegroundColor Green
-    Write-Host "      $($resp.choices[0].message.content)" -ForegroundColor White
+    Write-Host "      $content" -ForegroundColor White
     Write-Host ""
     Write-Host "[OK] 一切正常，可以接入客户端了。" -ForegroundColor Green
 } catch {

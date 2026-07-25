@@ -38,6 +38,11 @@ func CurlSSE(parentCtx context.Context, url string, options cycletls.Options) (<
 			"--max-time", fmt.Sprintf("%d", curlExecutionTimeoutSeconds),
 			url,
 		}
+		// 走代理(PROXY_URL)。此前 options.Proxy 未被传给 curl,
+		// 导致国内网络下无法连接 lmarena 而报 curl (28) 超时。
+		if options.Proxy != "" {
+			args = append(args, "-x", options.Proxy)
+		}
 		for key, value := range headers {
 			args = append(args, "-H", fmt.Sprintf("%s: %s", key, value))
 		}

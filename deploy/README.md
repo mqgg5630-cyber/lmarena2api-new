@@ -294,11 +294,69 @@ docker compose up -d
 
 ---
 
+## 五点五、国内网络必读：配置代理
+
+`lmarena.ai` 在国内**直连不通**。若日志出现：
+
+```
+curl: (28) Failed to connect to canary.lmarena.ai:443 after 21168 ms
+```
+
+说明服务本身没问题（`/v1/models` 能返回就证明了），只是连不上上游站点。
+
+### 1. 找到你的本地代理端口
+
+打开你的科学上网客户端，在「设置 / 端口 / Local Port」里看 **HTTP 代理端口**：
+
+| 客户端 | 常见默认端口 |
+|---|---|
+| Clash / Clash Verge / Mihomo | `7890` |
+| v2rayN | `10809`（HTTP）/ `10808`（SOCKS） |
+| Shadowsocks / SSR | `1080` |
+
+### 2. 写进 `.env`
+
+```ini
+PROXY_URL=http://127.0.0.1:7890
+```
+
+> 注意用 `http://` 前缀。若你的工具只提供 SOCKS5，写
+> `PROXY_URL=socks5h://127.0.0.1:10808`。
+
+### 3. 先用 curl 验证代理确实能通
+
+```powershell
+curl.exe -x http://127.0.0.1:7890 -I https://canary.lmarena.ai --max-time 15
+```
+
+返回 `HTTP/2 200`、`403` 或 `404` 都算通（能连上就行）；
+仍然超时说明端口填错或代理没开全局/规则未覆盖该域名。
+
+### 4. 重启服务
+
+```powershell
+.\deploy\stop.ps1
+.\deploy\start.ps1
+```
+
+> 另一种思路：把代理客户端开成 **TUN / 全局模式**，让所有流量走代理，
+> 就不必配 `PROXY_URL`。但显式配置更可控，推荐前者。
+
+### 站点域名变了？
+
+lmarena 曾在 `beta` / `canary` / 主域名之间迁移。若确认代理没问题但仍连不上，
+可在 `.env` 里覆盖域名，无需改代码：
+
+```ini
+LMARENA_HOST=lmarena.ai
+```
+
 ## 六、常见问题
 
 | 现象 | 原因 / 处理 |
 |---|---|
 | 启动即退出，日志 `环境变量 LA_COOKIE 未设置` | `.env` 没填或脚本没读到，检查 `deploy/.env` |
+| `curl: (28) Failed to connect ... 443` | **国内网络直连不通**，需在 `.env` 配 `PROXY_URL=http://127.0.0.1:7890`（端口按你的代理工具改），详见下方「国内网络」一节 |
 | 请求返回 403 / Cloudflare 拦截页 | ① `cf_clearance` 过期（有效期通常几十分钟到几小时，需重新抓）② `USER_AGENT` 与抓 cookie 的浏览器不一致 ③ 部署机 IP 与抓 cookie 的 IP 不同 |
 | 401 Unauthorized | 请求头 `Authorization: Bearer <API_SECRET>` 与配置不符 |
 | 端口被占用 | 改 `.env` 里的 `PORT` |

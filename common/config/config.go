@@ -22,6 +22,20 @@ var MysqlDsn = os.Getenv("MYSQL_DSN")
 var IpBlackList = strings.Split(os.Getenv("IP_BLACK_LIST"), ",")
 var DebugSQLEnabled = strings.ToLower(os.Getenv("DEBUG_SQL")) == "true"
 var ProxyUrl = env.String("PROXY_URL", "")
+
+// 站点域名。lmarena 曾在 beta / canary / 主域名之间迁移,
+// 站点改版导致连接失败时可通过环境变量 LMARENA_HOST 覆盖,无需改代码。
+var LmarenaHost = env.String("LMARENA_HOST", "canary.lmarena.ai")
+
+// LmarenaBaseUrl 返回形如 https://canary.lmarena.ai 的基础地址
+func LmarenaBaseUrl() string {
+	host := strings.TrimSpace(LmarenaHost)
+	host = strings.TrimSuffix(strings.TrimPrefix(strings.TrimPrefix(host, "https://"), "http://"), "/")
+	if host == "" {
+		host = "canary.lmarena.ai"
+	}
+	return "https://" + host
+}
 var UserAgent = env.String("USER_AGENT", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36")
 var CheatEnabled = env.Bool("CHEAT_ENABLED", false)
 var CheatUrl = env.String("CHEAT_URL", "https://kl.goeast.io/kilo/cheat")

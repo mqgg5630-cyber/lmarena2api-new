@@ -96,16 +96,21 @@ func buildClientHints() map[string]string {
 }
 
 func GetAuthToken(c *gin.Context, cookie string) (string, error) {
-	cmd := exec.Command("curl", "-i", "https://canary.lmarena.ai/api/refresh",
+	base := config.LmarenaBaseUrl()
+	curlArgs := []string{"-i", base + "/api/refresh"}
+	if config.ProxyUrl != "" {
+		curlArgs = append(curlArgs, "-x", config.ProxyUrl)
+	}
+	curlArgs = append(curlArgs,
 		"-X", "POST",
 		"-H", "accept: */*",
 		"-H", "accept-language: zh-CN,zh;q=0.9",
 		"-H", "content-length: 0",
 		"-H", "content-type: application/json",
 		"-b", "arena-auth-prod-v1="+cookie,
-		"-H", "origin: https://canary.lmarena.ai",
+		"-H", "origin: "+base,
 		"-H", "priority: u=1, i",
-		"-H", "referer: https://canary.lmarena.ai/c/81abf456-d419-456f-bd11-0fb8093fd7c9",
+		"-H", "referer: "+base+"/",
 		"-H", "sec-ch-ua: \"Chromium\";v=\"136\", \"Google Chrome\";v=\"136\", \"Not.A/Brand\";v=\"99\"",
 		"-H", "sec-ch-ua-full-version: 136.0.1613.16",
 		"-H", "sec-ch-ua-full-version-list: \"Chromium\";v=\"136.0.1613.16\", \"Google Chrome\";v=\"136.0.1613.16\", \"Not.A/Brand\";v=\"99.0.0.0\"",
@@ -115,6 +120,8 @@ func GetAuthToken(c *gin.Context, cookie string) (string, error) {
 		"-H", "sec-fetch-mode: cors",
 		"-H", "sec-fetch-site: same-origin",
 		"-H", "user-agent: "+config.UserAgent)
+
+	cmd := exec.Command("curl", curlArgs...)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -149,9 +156,9 @@ func MakeStreamChatRequest(c *gin.Context, client cycletls.CycleTLS, jsonData []
 		"accept":                      "*/*",
 		"accept-language":             "zh-CN,zh;q=0.9,en;q=0.8",
 		"content-type":                "text/plain;charset=UTF-8",
-		"origin":                      "https://canary.lmarena.ai",
+		"origin":                      config.LmarenaBaseUrl(),
 		"priority":                    "u=1, i",
-		"referer":                     "https://canary.lmarena.ai/",
+		"referer":                     config.LmarenaBaseUrl() + "/",
 		"user-agent":                  config.UserAgent,
 		"cookie":                      cookieHeader,
 	}
@@ -172,7 +179,7 @@ func MakeStreamChatRequest(c *gin.Context, client cycletls.CycleTLS, jsonData []
 
 	logger.Debug(c.Request.Context(), fmt.Sprintf("cookie: %v", cookie))
 
-	sseChan, err := CurlSSE(c.Request.Context(), "https://canary.lmarena.ai/api/stream/create-evaluation", options)
+	sseChan, err := CurlSSE(c.Request.Context(), config.LmarenaBaseUrl()+"/api/stream/create-evaluation", options)
 	if err != nil {
 		logger.Errorf(c, "Failed to make stream request: %v", err)
 		return nil, fmt.Errorf("Failed to make stream request: %v", err)
