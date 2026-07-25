@@ -177,7 +177,8 @@ func MakeStreamChatRequest(c *gin.Context, client cycletls.CycleTLS, jsonData []
 		ForceHTTP1: false,
 	}
 
-	logger.Debug(c.Request.Context(), fmt.Sprintf("cookie: %v", cookie))
+	// 不要输出完整 cookie: 它是可直接冒用身份的凭据(JWT 内含邮箱等信息)
+	logger.Debug(c.Request.Context(), fmt.Sprintf("cookie: %s", common.MaskSecret(cookie)))
 
 	sseChan, err := CurlSSE(c.Request.Context(), config.LmarenaBaseUrl()+"/api/stream/create-evaluation", options)
 	if err != nil {

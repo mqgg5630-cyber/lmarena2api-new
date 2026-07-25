@@ -221,3 +221,35 @@ func StringToSHA256(str string) string {
 	hash := sha256.Sum256([]byte(str))
 	return hex.EncodeToString(hash[:])
 }
+
+// MaskSecret 对凭据类字符串脱敏,仅保留头尾少量字符用于排查。
+// cookie/JWT 属于可直接冒用身份的凭据,严禁完整写入日志。
+func MaskSecret(s string) string {
+	s = strings.TrimSpace(s)
+	if s == "" {
+		return ""
+	}
+	if len(s) <= 16 {
+		return "***"
+	}
+	return fmt.Sprintf("%s...(%d chars)...%s", s[:8], len(s), s[len(s)-4:])
+}
+
+// DiagnoseHTMLResponse 在上游返回 HTML(而非预期的 SSE/JSON)时给出可读的原因判断。
+func DiagnoseHTMLResponse(data string) string {
+	d := strings.ToLower(data)
+	switch {
+	case strings.Contains(d, "just a moment"), strings.Contains(d, "cdn-cgi/challenge-platform"):
+		return "Cloudflare 人机验证挑战: 需要配置有效的 CF_CLEARANCE(并保证 USER_AGENT 与抓取时一致)"
+	case strings.Contains(d, "sorry, you have been blocked"):
+		return "已被 Cloudflare 封禁: 更换出口 IP 或稍后再试"
+	case strings.Contains(d, "301 moved"), strings.Contains(d, "302 found"),
+		strings.Contains(d, "moved permanently"), strings.Contains(d, "redirecting"):
+		return "上游发生重定向: LMARENA_HOST 域名可能已变更,请确认站点当前实际域名"
+	case strings.Contains(d, "404"), strings.Contains(d, "not found"):
+		return "接口不存在(404): 上游 API 路径可能已改版"
+	case strings.Contains(d, "sign in"), strings.Contains(d, "log in"), strings.Contains(d, "unauthorized"):
+		return "未登录/登录态失效: 请重新抓取 LA_COOKIE"
+	}
+	return "上游返回了 HTML 而非数据流,通常意味着域名、接口路径或登录态有问题"
+}

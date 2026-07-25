@@ -643,7 +643,13 @@ func processStreamData(c *gin.Context, data, responseId, model string, modelInfo
 	// Parse the prefixed data format from the logs
 	parts := strings.SplitN(data, ":", 2)
 	if len(parts) != 2 {
-		logger.Errorf(c.Request.Context(), "Invalid data format: %s", data)
+		// 上游返回 HTML 时给出可读原因,而不是只丢一句 Invalid data format
+		if strings.HasPrefix(strings.TrimSpace(strings.ToLower(data)), "<") {
+			logger.Errorf(c.Request.Context(), "上游返回非预期内容: %s | 原始片段: %.200s",
+				common.DiagnoseHTMLResponse(data), data)
+		} else {
+			logger.Errorf(c.Request.Context(), "Invalid data format: %s", data)
+		}
 		return "", false
 	}
 
@@ -704,7 +710,13 @@ func processNoStreamData(c *gin.Context, data string, modelInfo common.ModelInfo
 	// Parse the prefixed data format from the logs
 	parts := strings.SplitN(data, ":", 2)
 	if len(parts) != 2 {
-		logger.Errorf(c.Request.Context(), "Invalid data format: %s", data)
+		// 上游返回 HTML 时给出可读原因,而不是只丢一句 Invalid data format
+		if strings.HasPrefix(strings.TrimSpace(strings.ToLower(data)), "<") {
+			logger.Errorf(c.Request.Context(), "上游返回非预期内容: %s | 原始片段: %.200s",
+				common.DiagnoseHTMLResponse(data), data)
+		} else {
+			logger.Errorf(c.Request.Context(), "Invalid data format: %s", data)
+		}
 		return "", false
 	}
 
@@ -760,7 +772,13 @@ func processImageData(c *gin.Context, data string, modelInfo common.ModelInfo) (
 	// Parse the prefixed data format from the logs
 	parts := strings.SplitN(data, ":", 2)
 	if len(parts) != 2 {
-		logger.Errorf(c.Request.Context(), "Invalid data format: %s", data)
+		// 上游返回 HTML 时给出可读原因,而不是只丢一句 Invalid data format
+		if strings.HasPrefix(strings.TrimSpace(strings.ToLower(data)), "<") {
+			logger.Errorf(c.Request.Context(), "上游返回非预期内容: %s | 原始片段: %.200s",
+				common.DiagnoseHTMLResponse(data), data)
+		} else {
+			logger.Errorf(c.Request.Context(), "Invalid data format: %s", data)
+		}
 		return "", false
 	}
 

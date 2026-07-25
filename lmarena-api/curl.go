@@ -54,7 +54,15 @@ func CurlSSE(parentCtx context.Context, url string, options cycletls.Options) (<
 		}
 
 		cmd := exec.CommandContext(ctx, "curl", args...)
-		logger.Debug(ctx, fmt.Sprintf("Executing curl for SSE: curl %s", strings.Join(args, " ")))
+		// 日志中隐去 cookie 值,避免凭据泄露
+		safeArgs := make([]string, len(args))
+		copy(safeArgs, args)
+		for i := 0; i < len(safeArgs); i++ {
+			if safeArgs[i] == "-b" && i+1 < len(safeArgs) {
+				safeArgs[i+1] = "<cookie hidden>"
+			}
+		}
+		logger.Debug(ctx, fmt.Sprintf("Executing curl for SSE: curl %s", strings.Join(safeArgs, " ")))
 
 		stdout, err := cmd.StdoutPipe()
 		if err != nil {
