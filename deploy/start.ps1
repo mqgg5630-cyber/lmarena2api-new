@@ -57,11 +57,14 @@ Get-Content $EnvFile -Encoding UTF8 | ForEach-Object {
 }
 
 # ---------- 3. 必填校验 ----------
-foreach ($required in @('LA_COOKIE', 'CF_CLEARANCE')) {
+foreach ($required in @('LA_COOKIE')) {
     if (-not $envMap.ContainsKey($required)) {
         Write-Host "[x] $EnvFile 中缺少必填项 $required" -ForegroundColor Red
         exit 1
     }
+}
+if (-not $envMap.ContainsKey('CF_CLEARANCE')) {
+    Write-Host "[i] 未设置 CF_CLEARANCE（多数账号本就没有此 cookie），请求将不携带它。" -ForegroundColor DarkGray
 }
 if (-not $envMap.ContainsKey('USER_AGENT')) {
     Write-Host "[!] 未设置 USER_AGENT，程序将使用内置的 Mac UA；若 Cloudflare 校验失败，请在 .env 中填入浏览器真实 UA。" -ForegroundColor Yellow

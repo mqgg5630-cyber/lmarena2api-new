@@ -305,7 +305,8 @@ docker compose up -d
 | 想看更多日志 | `.env` 中设 `DEBUG=true` |
 | 不知道 cookie 填哪段 | 直接跑 `.\deploy\init-env.ps1`，按提示逐个粘贴 |
 | 找不到 `create-evaluation` 请求 | 新版站点已改名，请改用 Application 面板（方法 A） |
-| Cookie 表格里没有 `cf_clearance` | 可留空先试；被 Cloudflare 拦截时再回来补 |
+| Cookie 表格里只有 `__cf_bm`，没有 `cf_clearance` | 正常。`__cf_bm` 是另一种 CF cookie，**不能代替**。`cf_clearance` 仅在触发过人机验证挑战时才签发，留空即可 |
+| 启动报 `缺少必填项 CF_CLEARANCE` | 旧版本才有此限制，`git pull` 更新后已改为可选 |
 | 调用报错想快速定位 | 跑 `.\deploy\test-api.ps1` 看是连不上、401 还是 Cloudflare 拦截 |
 
 `cf_clearance` 会过期，这是本项目的固有限制——过期后重抓 cookie 更新 `.env` 再重启即可。

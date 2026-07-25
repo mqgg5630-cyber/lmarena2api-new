@@ -29,6 +29,72 @@ const (
 // openRouterEndpoint = baseURL + "/api/openrouter/chat/completions"
 )
 
+// buildClientHints 根据 config.UserAgent 推导 sec-ch-ua-* 系列请求头。
+// 这些头必须与 User-Agent 自洽(平台/架构/版本),否则 Cloudflare 会判定为异常客户端。
+func buildClientHints() map[string]string {
+	ua := config.UserAgent
+
+	platform := "\"Windows\""
+	platformVersion := "\"15.0.0\""
+	arch := "\"x86\""
+	switch {
+	case strings.Contains(ua, "Macintosh"), strings.Contains(ua, "Mac OS X"):
+		platform = "\"macOS\""
+		platformVersion = "\"15.5.0\""
+		if strings.Contains(ua, "Intel") {
+			arch = "\"x86\""
+		} else {
+			arch = "\"arm\""
+		}
+	case strings.Contains(ua, "Linux"), strings.Contains(ua, "X11"):
+		platform = "\"Linux\""
+		platformVersion = "\"\""
+	}
+
+	mobile := "?0"
+	if strings.Contains(ua, "Mobile") {
+		mobile = "?1"
+	}
+
+	// 从 UA 中取主版本号
+	major := "137"
+	fullVersion := "137.0.0.0"
+	if m := regexp.MustCompile(`Chrome/(\d+)(\.[\d.]+)?`).FindStringSubmatch(ua); len(m) > 1 {
+		major = m[1]
+		fullVersion = m[1] + m[2]
+		if m[2] == "" {
+			fullVersion = m[1] + ".0.0.0"
+		}
+	}
+
+	// Edge 与 Chrome 的品牌列表不同
+	var brands, fullVersionList string
+	if em := regexp.MustCompile(`Edg/(\d+)(\.[\d.]+)?`).FindStringSubmatch(ua); len(em) > 1 {
+		eMajor := em[1]
+		eFull := eMajor + em[2]
+		if em[2] == "" {
+			eFull = eMajor + ".0.0.0"
+		}
+		brands = fmt.Sprintf(`"Microsoft Edge";v="%s", "Chromium";v="%s", "Not/A)Brand";v="24"`, eMajor, major)
+		fullVersionList = fmt.Sprintf(`"Microsoft Edge";v="%s", "Chromium";v="%s", "Not/A)Brand";v="24.0.0.0"`, eFull, fullVersion)
+	} else {
+		brands = fmt.Sprintf(`"Chromium";v="%s", "Google Chrome";v="%s", "Not/A)Brand";v="24"`, major, major)
+		fullVersionList = fmt.Sprintf(`"Chromium";v="%s", "Google Chrome";v="%s", "Not/A)Brand";v="24.0.0.0"`, fullVersion, fullVersion)
+	}
+
+	return map[string]string{
+		"sec-ch-ua":                   brands,
+		"sec-ch-ua-arch":              arch,
+		"sec-ch-ua-bitness":           "\"64\"",
+		"sec-ch-ua-full-version":      "\"" + fullVersion + "\"",
+		"sec-ch-ua-full-version-list": fullVersionList,
+		"sec-ch-ua-mobile":            mobile,
+		"sec-ch-ua-model":             "\"\"",
+		"sec-ch-ua-platform":          platform,
+		"sec-ch-ua-platform-version":  platformVersion,
+	}
+}
+
 func GetAuthToken(c *gin.Context, cookie string) (string, error) {
 	cmd := exec.Command("curl", "-i", "https://canary.lmarena.ai/api/refresh",
 		"-X", "POST",
@@ -71,6 +137,14 @@ func MakeStreamChatRequest(c *gin.Context, client cycletls.CycleTLS, jsonData []
 	if !ok {
 		return nil, fmt.Errorf("cookie not found in ASTokenMap")
 	}
+
+	// CF_CLEARANCE 未配置时不要拼出 "cf_clearance=;" 这样的空值字段,
+	// 空值 cookie 反而更容易被 Cloudflare 判定为异常请求。
+	cookieHeader := "arena-auth-prod-v1=" + tokenInfo.NewCookie
+	if config.CfClearance != "" {
+		cookieHeader = "cf_clearance=" + config.CfClearance + ";" + cookieHeader
+	}
+
 	headers := map[string]string{
 		"accept":                      "*/*",
 		"accept-language":             "zh-CN,zh;q=0.9,en;q=0.8",
@@ -78,17 +152,11 @@ func MakeStreamChatRequest(c *gin.Context, client cycletls.CycleTLS, jsonData []
 		"origin":                      "https://canary.lmarena.ai",
 		"priority":                    "u=1, i",
 		"referer":                     "https://canary.lmarena.ai/",
-		"sec-ch-ua":                   "\"Microsoft Edge\";v=\"137\", \"Chromium\";v=\"137\", \"Not/A)Brand\";v=\"24\"",
-		"sec-ch-ua-arch":              "\"arm\"",
-		"sec-ch-ua-bitness":           "\"64\"",
-		"sec-ch-ua-full-version":      "\"137.0.3296.52\"",
-		"sec-ch-ua-full-version-list": "\"Microsoft Edge\";v=\"137.0.3296.52\", \"Chromium\";v=\"137.0.7151.56\", \"Not/A)Brand\";v=\"24.0.0.0\"",
-		"sec-ch-ua-mobile":            "?0",
-		"sec-ch-ua-model":             "\"\"",
-		"sec-ch-ua-platform":          "\"macOS\"",
-		"sec-ch-ua-platform-version":  "\"15.5.0\"",
 		"user-agent":                  config.UserAgent,
-		"cookie":                      "cf_clearance=" + config.CfClearance + ";" + "arena-auth-prod-v1=" + tokenInfo.NewCookie,
+		"cookie":                      cookieHeader,
+	}
+	for k, v := range buildClientHints() {
+		headers[k] = v
 	}
 
 	options := cycletls.Options{

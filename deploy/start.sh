@@ -46,7 +46,7 @@ while IFS= read -r raw || [[ -n "$raw" ]]; do
 done < "$ENV_FILE"
 
 : "${LA_COOKIE:?[x] .env 中缺少 LA_COOKIE}"
-: "${CF_CLEARANCE:?[x] .env 中缺少 CF_CLEARANCE}"
+[[ -z "${CF_CLEARANCE:-}" ]] && echo "[i] 未设置 CF_CLEARANCE（多数账号本就没有此 cookie），请求将不携带它。"
 [[ -z "${USER_AGENT:-}" ]] && echo "[!] 未设置 USER_AGENT，将使用内置 Mac UA；Cloudflare 校验失败时请填入浏览器真实 UA。"
 
 # ---------- 2. 可执行文件 ----------
