@@ -48,7 +48,7 @@ func GetAuthToken(c *gin.Context, cookie string) (string, error) {
 		"-H", "sec-fetch-dest: empty",
 		"-H", "sec-fetch-mode: cors",
 		"-H", "sec-fetch-site: same-origin",
-		"-H", "user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36")
+		"-H", "user-agent: "+config.UserAgent)
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
@@ -87,13 +87,13 @@ func MakeStreamChatRequest(c *gin.Context, client cycletls.CycleTLS, jsonData []
 		"sec-ch-ua-model":             "\"\"",
 		"sec-ch-ua-platform":          "\"macOS\"",
 		"sec-ch-ua-platform-version":  "\"15.5.0\"",
-		"user-agent":                  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36 Edg/137.0.0.0",
+		"user-agent":                  config.UserAgent,
 		"cookie":                      "cf_clearance=" + config.CfClearance + ";" + "arena-auth-prod-v1=" + tokenInfo.NewCookie,
 	}
 
 	options := cycletls.Options{
 		Ja3:        "771,4865-4866-4867-49195-49199-49196-49200-52393-52392-49171-49172-156-157-47-53,0-23-65281-10-11-35-16-5-13-18-51-45-43-27-17513-21,29-23-24,0",
-		UserAgent:  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
+		UserAgent:  config.UserAgent,
 		Timeout:    10 * 60 * 60,
 		Proxy:      config.ProxyUrl, // 在每个请求中设置代理
 		Body:       string(jsonData),
@@ -297,7 +297,7 @@ func MakeSignUpRequest(token string, cfClearance string) (string, error) {
 		"-H", "sec-fetch-dest: empty",
 		"-H", "sec-fetch-mode: cors",
 		"-H", "sec-fetch-site: same-origin",
-		"-H", "user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
+		"-H", "user-agent: "+config.UserAgent,
 		"--data-raw", requestData,
 		"-s") // 添加-s参数使curl静默输出，不显示进度信息
 

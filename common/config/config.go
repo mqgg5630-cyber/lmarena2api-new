@@ -22,7 +22,7 @@ var MysqlDsn = os.Getenv("MYSQL_DSN")
 var IpBlackList = strings.Split(os.Getenv("IP_BLACK_LIST"), ",")
 var DebugSQLEnabled = strings.ToLower(os.Getenv("DEBUG_SQL")) == "true"
 var ProxyUrl = env.String("PROXY_URL", "")
-var UserAgent = env.String("USER_AGENT", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome")
+var UserAgent = env.String("USER_AGENT", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36")
 var CheatEnabled = env.Bool("CHEAT_ENABLED", false)
 var CheatUrl = env.String("CHEAT_URL", "https://kl.goeast.io/kilo/cheat")
 var ChatMaxDays = env.Int("CHAT_MAX_DAYS", -1)
@@ -108,9 +108,12 @@ func InitLACookies() {
 	//
 	for _, cookie := range strings.Split(cookieStr, ",") {
 		cookie = strings.TrimSpace(cookie)
-		LACookies = append(LACookies, cookieStr)
-		LATokenMap[cookieStr] = LATokenInfo{
-			NewCookie: cookieStr,
+		if cookie == "" {
+			continue
+		}
+		LACookies = append(LACookies, cookie)
+		LATokenMap[cookie] = LATokenInfo{
+			NewCookie: cookie,
 			// 其他字段如果需要的话也可以设置
 		}
 	}
@@ -233,7 +236,7 @@ func MakeSignUpRequest(token string) (string, error) {
 		"-H", "sec-fetch-dest: empty",
 		"-H", "sec-fetch-mode: cors",
 		"-H", "sec-fetch-site: same-origin",
-		"-H", "user-agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
+		"-H", "user-agent: "+UserAgent,
 		"--data-raw", requestData,
 		"-s") // 添加-s参数使curl静默输出，不显示进度信息
 
