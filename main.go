@@ -56,6 +56,15 @@ func main() {
 
 	config.InitLACookies()
 
+	// 打印实际生效的关键配置,便于快速定位「配了却没生效」类问题
+	if config.ProxyUrl != "" {
+		logger.SysLog(fmt.Sprintf("代理已启用 PROXY_URL=%s", config.ProxyUrl))
+	} else {
+		logger.SysLog("未配置 PROXY_URL(直连)。国内网络通常连不上 lmarena,若报 curl (28) 请在 .env 中设置代理。")
+	}
+	logger.SysLog(fmt.Sprintf("上游站点 LMARENA_HOST=%s", config.LmarenaBaseUrl()))
+	logger.SysLog(fmt.Sprintf("已加载 cookie 数量: %d", len(config.GetLACookies())))
+
 	logger.SysLog("lmarena2api start success. enjoy it! ^_^\n")
 
 	//if !config.AutoRegister {
