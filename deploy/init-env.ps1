@@ -28,55 +28,78 @@ Write-Host ""
 Write-Host "=== lmarena2api 配置生成向导 ===" -ForegroundColor Cyan
 Write-Host ""
 
-# ---------- 1. 取 Cookie 字符串 ----------
-if (-not $CookieString) {
-    Write-Host "【第 1 步】获取 Cookie" -ForegroundColor Yellow
-    Write-Host "  1) 浏览器打开 https://lmarena.ai 并正常发一次对话"
-    Write-Host "  2) 按 F12 -> 切到「网络 / Network」标签"
-    Write-Host "  3) 再发一次对话，在左侧请求列表找到  create-evaluation"
-    Write-Host "  4) 点它 -> 右侧「标头 / Headers」-> 找到「请求标头」里的  Cookie  那一行"
-    Write-Host "  5) 右键该行 -> 复制值 (Copy value)。整行都复制，不用自己截取。"
-    Write-Host ""
-
-    $clip = ''
-    try { $clip = (Get-Clipboard -Raw -ErrorAction SilentlyContinue) } catch { }
-    if ($clip -and ($clip -match 'arena-auth-prod-v1=' -or $clip -match 'cf_clearance=')) {
-        Write-Host "  [i] 检测到剪贴板里已有 cookie 内容，直接使用。" -ForegroundColor Green
-        $CookieString = $clip
-    } else {
-        Write-Host "  复制好之后，在这里右键粘贴再回车：" -ForegroundColor Yellow
-        $CookieString = Read-Host "  Cookie"
-    }
-}
-
-$CookieString = ($CookieString -replace '^\s*[Cc]ookie:\s*', '').Trim()
-
-# ---------- 2. 切出两个值 ----------
+# ---------- 1. 取 Cookie ----------
 function Get-CookieValue([string]$all, [string]$name) {
-    # 匹配 name=value，value 到分号或结尾为止
-    $m = [regex]::Match($all, [regex]::Escape($name) + '=([^;]+)')
+    # 匹配 name=value，value 取到分号或结尾为止
+    $m = [regex]::Match($all, [regex]::Escape($name) + '=([^;\s]+)')
     if ($m.Success) { return $m.Groups[1].Value.Trim() }
     return $null
 }
 
-$la = Get-CookieValue $CookieString 'arena-auth-prod-v1'
-$cf = Get-CookieValue $CookieString 'cf_clearance'
+function Clean-Value([string]$v, [string]$name) {
+    if (-not $v) { return $v }
+    $v = $v.Trim().Trim([char]39).Trim([char]34).Trim()
+    # 用户可能连名字一起粘了，去掉 "name=" 前缀
+    if ($v -match ('^' + [regex]::Escape($name) + '=')) {
+        $v = $v -replace ('^' + [regex]::Escape($name) + '='), ''
+    }
+    # 去掉结尾分号
+    return $v.TrimEnd(';').Trim()
+}
 
+$la = $null; $cf = $null
+
+if ($CookieString) {
+    $CookieString = ($CookieString -replace '^\s*[Cc]ookie:\s*', '').Trim()
+    $la = Get-CookieValue $CookieString 'arena-auth-prod-v1'
+    $cf = Get-CookieValue $CookieString 'cf_clearance'
+}
+
+if (-not $la -or -not $cf) {
+    Write-Host "【第 1 步】获取两个 Cookie 值" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  用【应用程序】面板最稳（不用去找某个具体请求）：" -ForegroundColor Cyan
+    Write-Host "    1) 浏览器打开 https://lmarena.ai 并正常发一次对话（确保过了人机验证）"
+    Write-Host "    2) 按 F12，切到「应用程序 / Application」标签"
+    Write-Host "       （标签太多看不到就点 >> 展开，中文版叫「应用程序」）"
+    Write-Host "    3) 左侧展开「存储 / Storage」-> 「Cookie / Cookies」-> 点站点域名"
+    Write-Host "    4) 中间会出现 Name / Value 两列的表格，一会儿按提示找对应的行"
+    Write-Host ""
+    Write-Host "  复制方法：点中那一行 -> 双击 Value 单元格 -> Ctrl+A 全选 -> Ctrl+C" -ForegroundColor DarkGray
+    Write-Host ""
+}
+
+# --- arena-auth-prod-v1 ---
 if (-not $la) {
-    Write-Host "[x] 没能从粘贴内容里找到 arena-auth-prod-v1，请确认复制的是完整的 Cookie 行。" -ForegroundColor Red
+    Write-Host "  [1/2] 找到 Name 为  arena-auth-prod-v1  的那一行，复制它的 Value" -ForegroundColor Yellow
+    Write-Host "        特征：以 base64- 开头，非常长（上千字符）" -ForegroundColor DarkGray
+    $la = Read-Host "  粘贴 arena-auth-prod-v1 的值"
+    $la = Clean-Value $la 'arena-auth-prod-v1'
+}
+if (-not $la) {
+    Write-Host "[x] arena-auth-prod-v1 不能为空。若表格里找不到它，说明还没登录/没发过对话。" -ForegroundColor Red
     exit 1
 }
+
+# --- cf_clearance ---
 if (-not $cf) {
-    Write-Host "[!] 没找到 cf_clearance。" -ForegroundColor Yellow
-    Write-Host "    它可能不在这个请求里，可换一个请求再复制，或单独粘贴它的值：" -ForegroundColor Yellow
-    $cf = Read-Host "  CF_CLEARANCE（直接回车跳过）"
-    $cf = $cf.Trim()
+    Write-Host ""
+    Write-Host "  [2/2] 找到 Name 为  cf_clearance  的那一行，复制它的 Value" -ForegroundColor Yellow
+    Write-Host "        特征：中间带一串数字时间戳，形如 xxx-1748314997-1.2.1.1-yyy" -ForegroundColor DarkGray
+    Write-Host "        （如果整个表格里没有这一行，直接回车跳过，多数情况仍可用）" -ForegroundColor DarkGray
+    $cf = Read-Host "  粘贴 cf_clearance 的值（可回车跳过）"
+    $cf = Clean-Value $cf 'cf_clearance'
 }
 
 Write-Host ""
-Write-Host "  [+] LA_COOKIE    已取到，长度 $($la.Length) 字符，开头: $($la.Substring(0,[Math]::Min(20,$la.Length)))..." -ForegroundColor Green
+Write-Host "  [+] LA_COOKIE    长度 $($la.Length)，开头: $($la.Substring(0,[Math]::Min(24,$la.Length)))..." -ForegroundColor Green
+if ($la -notmatch '^base64-') {
+    Write-Host "  [!] 注意：正常值应以 base64- 开头，你粘的似乎不是，请确认复制的是 Value 列。" -ForegroundColor Yellow
+}
 if ($cf) {
-    Write-Host "  [+] CF_CLEARANCE 已取到，长度 $($cf.Length) 字符，开头: $($cf.Substring(0,[Math]::Min(20,$cf.Length)))..." -ForegroundColor Green
+    Write-Host "  [+] CF_CLEARANCE 长度 $($cf.Length)，开头: $($cf.Substring(0,[Math]::Min(24,$cf.Length)))..." -ForegroundColor Green
+} else {
+    Write-Host "  [i] CF_CLEARANCE 留空。若之后调用被 Cloudflare 拦截，再回来补上。" -ForegroundColor DarkGray
 }
 
 # ---------- 3. User-Agent ----------

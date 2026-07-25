@@ -56,39 +56,44 @@ Copy-Item E:\1AI\lmarena2api\lmarena2api.exe .
 浏览器打开 <https://beta.lmarena.ai/>（若跳转到 canary 域名则用跳转后的域名），
 **先正常发一次对话**，确保已通过 Cloudflare 人机验证。
 
-#### 方法 A：Network 面板（对应项目自带截图 `docs/img.png`）
+#### 方法 A：Application 面板（推荐，不依赖请求名）
 
-1. 按 `F12` → 切到 **网络 / Network** 标签
-2. 在网页上**再发一次对话**（面板要开着才能抓到请求）
-3. 左侧请求列表里找到名为 **`create-evaluation`** 的请求，点它
-4. 右侧选 **标头 / Headers** → 往下翻到 **请求标头 / Request Headers**
-5. 找到 **`Cookie`** 那一行，**右键 → 复制值 (Copy value)**
+1. 按 `F12` → 切到 **应用程序 / Application** 标签
+   （标签栏放不下就点 `»` 展开；英文版是 Application）
+2. 左侧 **存储 / Storage** → **Cookie / Cookies** → 点开站点域名
+3. 中间出现 Name / Value 两列表格，找这两行，**只复制 Value 列**：
 
-复制到的是一长串，形如：
+| Name（这列不要复制） | Value 特征 | 填到 |
+|---|---|---|
+| `arena-auth-prod-v1` | 以 `base64-` 开头，上千字符 | `LA_COOKIE` |
+| `cf_clearance` | 中间带时间戳，形如 `xxx-1748314997-1.2.1.1-yyy` | `CF_CLEARANCE` |
+
+复制方式：点中该行 → **双击 Value 单元格** → `Ctrl+A` 全选 → `Ctrl+C`。
+
+> - 表格里没有 `arena-auth-prod-v1`？说明还没登录或没发过对话，先去聊一句。
+> - 没有 `cf_clearance`？可以先留空，多数情况仍能用；之后被拦截再回来补。
+> - 顶部有筛选框，输入 `arena` 或 `cf_` 可快速过滤。
+
+#### 方法 B：Network 面板
+
+项目自带截图 `docs/img.png` 走的是这条路，但它拍摄时的请求名 `create-evaluation`
+**在新版站点上已经改名，通常找不到**。改用通用做法：
+
+1. F12 → **网络 / Network** → 勾选 **Fetch/XHR** 过滤
+2. 在页面发一次对话，列表里随便点一个发往 lmarena 的请求
+3. 右侧 **标头 / Headers** → **请求标头** → 找 `Cookie` 那一行 → 右键 **复制值**
+
+复制到的是一整行，形如：
 
 ```
-_ga=GA1.1.1844189520.1748314969; cf_clearance=c7uXXXX-1748314997-1.2.1.1-V166XwQuEjZgwa...; arena-auth-prod-v1=base64-eyJhY2Nlc3NfdG9rZW4iOiJ...; sidebar=false
+_ga=GA1.1.1844189520...; cf_clearance=c7uXXXX-1748314997-1.2.1.1-V166...; arena-auth-prod-v1=base64-eyJhY2Nlc3Nf...; sidebar=false
 ```
 
-它由多个 `名字=值` 用 `; ` 拼成。你要的是其中两段：
+把整行交给向导自动切分即可：
 
-- `cf_clearance=` 后面到下一个 `;` 为止 → **`CF_CLEARANCE`**（截图中蓝色高亮部分）
-- `arena-auth-prod-v1=` 后面到下一个 `;` 为止 → **`LA_COOKIE`**（截图中红色高亮部分）
-
-> 懒得手动切就直接跑 `.\deploy\init-env.ps1`，整行粘进去它自动切好。
-
-#### 方法 B：Application 面板（值更好复制）
-
-F12 → **应用程序 / Application** → 左侧 **存储 → Cookie** → 点开站点域名，
-会看到 Name / Value 表格，找这两行，只复制 **Value** 列：
-
-| Name（这列不要复制） | Value（复制这列）→ 填到 |
-|---|---|
-| `cf_clearance` | `CF_CLEARANCE` |
-| `arena-auth-prod-v1` | `LA_COOKIE` |
-
-双击 Value 单元格 → `Ctrl+A` 全选 → `Ctrl+C`。
-`arena-auth-prod-v1` 长达上千字符，务必确认复制完整。
+```powershell
+.\deploy\init-env.ps1 -CookieString "把整行粘到这里"
+```
 
 #### 三个值分别怎么填
 
@@ -298,7 +303,9 @@ docker compose up -d
 | 401 Unauthorized | 请求头 `Authorization: Bearer <API_SECRET>` 与配置不符 |
 | 端口被占用 | 改 `.env` 里的 `PORT` |
 | 想看更多日志 | `.env` 中设 `DEBUG=true` |
-| 不知道 cookie 填哪段 | 直接跑 `.\deploy\init-env.ps1`，整行粘贴自动切 |
+| 不知道 cookie 填哪段 | 直接跑 `.\deploy\init-env.ps1`，按提示逐个粘贴 |
+| 找不到 `create-evaluation` 请求 | 新版站点已改名，请改用 Application 面板（方法 A） |
+| Cookie 表格里没有 `cf_clearance` | 可留空先试；被 Cloudflare 拦截时再回来补 |
 | 调用报错想快速定位 | 跑 `.\deploy\test-api.ps1` 看是连不上、401 还是 Cloudflare 拦截 |
 
 `cf_clearance` 会过期，这是本项目的固有限制——过期后重抓 cookie 更新 `.env` 再重启即可。
