@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Windows (PowerShell) 下启动 lmarena2api。
 
@@ -36,7 +36,7 @@ if (-not (Test-Path $EnvFile)) {
     Write-Host "[!] 未找到配置文件: $EnvFile" -ForegroundColor Yellow
     if (Test-Path $sample) {
         Copy-Item $sample $EnvFile
-        Write-Host "[+] 已根据 .env.example 生成 $EnvFile，请先填写 LA_COOKIE / CF_CLEARANCE / USER_AGENT 后重新运行。" -ForegroundColor Cyan
+        Write-Host "[+] 已根据 .env.example 生成 ${EnvFile}，请先填写 LA_COOKIE / CF_CLEARANCE / USER_AGENT 后重新运行。" -ForegroundColor Cyan
     }
     exit 1
 }

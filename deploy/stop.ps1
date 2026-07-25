@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     停止后台运行的 lmarena2api。
 #>

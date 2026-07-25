@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     测试 lmarena2api 是否正常工作（自动读取 deploy/.env 里的 API_SECRET 和 PORT）。
 
@@ -44,7 +44,7 @@ Write-Host ""
 Write-Host "[1/2] 测试 /v1/models ..." -ForegroundColor Yellow
 try {
     $r = Invoke-RestMethod -Uri "$BaseUrl/v1/models" -Headers $headers -Method Get -TimeoutSec 20
-    Write-Host "  [✓] 连接成功，可用模型 $($r.data.Count) 个，例如：" -ForegroundColor Green
+    Write-Host "  [OK] 连接成功，可用模型 $($r.data.Count) 个，例如：" -ForegroundColor Green
     $r.data | Select-Object -First 5 | ForEach-Object { Write-Host "      $($_.id)" -ForegroundColor DarkGray }
 } catch {
     Write-Host "  [x] 失败: $($_.Exception.Message)" -ForegroundColor Red
@@ -65,10 +65,10 @@ $body = @{
 try {
     $resp = Invoke-RestMethod -Uri "$BaseUrl/v1/chat/completions" -Headers $headers `
             -Method Post -Body ([System.Text.Encoding]::UTF8.GetBytes($body)) -TimeoutSec 180
-    Write-Host "  [✓] 回复：" -ForegroundColor Green
+    Write-Host "  [OK] 回复：" -ForegroundColor Green
     Write-Host "      $($resp.choices[0].message.content)" -ForegroundColor White
     Write-Host ""
-    Write-Host "[✓] 一切正常，可以接入客户端了。" -ForegroundColor Green
+    Write-Host "[OK] 一切正常，可以接入客户端了。" -ForegroundColor Green
 } catch {
     Write-Host "  [x] 失败: $($_.Exception.Message)" -ForegroundColor Red
     if ($_.ErrorDetails.Message) { Write-Host "      $($_.ErrorDetails.Message)" -ForegroundColor DarkGray }

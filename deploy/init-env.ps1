@@ -1,6 +1,6 @@
-<#
+﻿<#
 .SYNOPSIS
-    交互式生成 deploy/.env —— 你只需整行粘贴浏览器的 Cookie，脚本自动切出
+    交互式生成 deploy/.env -- 你只需整行粘贴浏览器的 Cookie，脚本自动切出
     LA_COOKIE 与 CF_CLEARANCE，无需手动截取。
 
 .DESCRIPTION
@@ -88,7 +88,7 @@ if (-not $UserAgent) {
     Write-Host "  把结果粘贴到这里（两端的引号会自动去掉）："
     $UserAgent = Read-Host "  USER_AGENT"
 }
-$UserAgent = $UserAgent.Trim().Trim("'").Trim('"').Trim()
+$UserAgent = $UserAgent.Trim().Trim([char]39).Trim([char]34).Trim()
 if (-not $UserAgent) {
     Write-Host "[x] USER_AGENT 不能为空，它必须和抓 cookie 的浏览器一致。" -ForegroundColor Red
     exit 1
@@ -124,7 +124,7 @@ $lines = @(
 [System.IO.File]::WriteAllLines($envPath, $lines, (New-Object System.Text.UTF8Encoding($false)))
 
 Write-Host ""
-Write-Host "[✓] 已生成 $envPath" -ForegroundColor Green
+Write-Host "[OK] 已生成 $envPath" -ForegroundColor Green
 Write-Host ""
 Write-Host "下一步：" -ForegroundColor Cyan
 Write-Host "    .\deploy\start.ps1"

@@ -1,0 +1,6 @@
+# PowerShell 脚本：保持 CRLF，禁止 Git 转换行尾。
+# Windows PowerShell 5.1 需要 UTF-8 BOM 才能正确识别中文，二者缺一会导致中文乱码并报语法错误。
+*.ps1 -text
+
+# Shell 脚本必须是 LF，否则 Linux/WSL 下会报 bad interpreter
+*.sh text eol=lf
