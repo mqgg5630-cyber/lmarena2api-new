@@ -91,6 +91,19 @@ if (-not $Exe -or -not (Test-Path $Exe)) {
 }
 
 $port = if ($envMap.ContainsKey('PORT')) { $envMap['PORT'] } else { '10088' }
+
+# 防呆：PORT 不能与 PROXY_URL 的端口相同，否则请求会被代理软件接走(常见症状:400)
+if ($envMap.ContainsKey('PROXY_URL') -and $envMap['PROXY_URL']) {
+    $pm = [regex]::Match($envMap['PROXY_URL'], ':(\d+)')
+    if ($pm.Success -and $pm.Groups[1].Value -eq $port) {
+        Write-Host "[x] 配置冲突：PORT 与 PROXY_URL 的端口都是 $port" -ForegroundColor Red
+        Write-Host "    $port 是你代理软件(Clash 等)占用的端口，服务不能也监听它。" -ForegroundColor Yellow
+        Write-Host "    请把 .env 里的 PORT 改回 10088，PROXY_URL 保持不变：" -ForegroundColor Yellow
+        Write-Host "        PORT=10088" -ForegroundColor Cyan
+        Write-Host "        PROXY_URL=$($envMap['PROXY_URL'])" -ForegroundColor Cyan
+        exit 1
+    }
+}
 Write-Host "[+] 可执行文件 : $Exe"
 Write-Host "[+] 监听端口   : $port"
 Write-Host "[+] 接口地址   : http://127.0.0.1:$port/v1/chat/completions"

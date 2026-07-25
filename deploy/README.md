@@ -360,6 +360,7 @@ LMARENA_HOST=lmarena.ai
 | 请求返回 403 / Cloudflare 拦截页 | ① `cf_clearance` 过期（有效期通常几十分钟到几小时，需重新抓）② `USER_AGENT` 与抓 cookie 的浏览器不一致 ③ 部署机 IP 与抓 cookie 的 IP 不同 |
 | 401 Unauthorized | 请求头 `Authorization: Bearer <API_SECRET>` 与配置不符 |
 | 端口被占用 | 改 `.env` 里的 `PORT` |
+| test-api 报 400，但服务明明在跑 | `PORT` 被误填成了代理端口(如 7890)，请求被 Clash 接走。`PORT` 与 `PROXY_URL` 的端口必须不同 |
 | 想看更多日志 | `.env` 中设 `DEBUG=true` |
 | 不知道 cookie 填哪段 | 直接跑 `.\deploy\init-env.ps1`，按提示逐个粘贴 |
 | 找不到 `create-evaluation` 请求 | 新版站点已改名，请改用 Application 面板（方法 A） |
