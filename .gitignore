@@ -14,3 +14,7 @@ cmd.md
 .env
 temp
 .DS_Store
+# deploy 本地配置
+deploy/.env
+lmarena2api.pid
+logfile*.log
